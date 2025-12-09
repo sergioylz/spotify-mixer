@@ -6,46 +6,56 @@
  * Se llama cuando el token actual está expirado o falla con 401.
  * @returns {Promise<string|null>} El nuevo access token o null si falla.
  */
-async function refreshAccessToken() {
-    const refreshToken = localStorage.getItem('spotify_refresh_token');
+async function refreshAccessToken(tokenToRefresh) {
+    
+    // Si no se pasa un token, asumimos que estamos en el cliente e intentamos obtenerlo de localStorage
+    const refreshToken = tokenToRefresh || (typeof window !== 'undefined' ? localStorage.getItem('spotify_refresh_token') : null);
 
     if (!refreshToken) {
         console.error("No se encontró Refresh Token.");
+        // Si no hay token Y estamos en el cliente, limpiamos (aunque ya deberían estar limpios)
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('spotify_token');
+            localStorage.removeItem('spotify_refresh_token');
+            localStorage.removeItem('spotify_token_expiration');
+        }
         return null;
     }
 
     try {
         const response = await fetch('/api/refresh-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            // Usamos el refreshToken obtenido/pasado
+            body: JSON.stringify({ refresh_token: refreshToken }) 
         });
 
         if (!response.ok) {
-        console.error('Error al refrescar token:', await response.json());
-        // Si el refresh token falla (ej. ha sido revocado), limpiamos todo.
-        localStorage.removeItem('spotify_token');
-        localStorage.removeItem('spotify_refresh_token');
-        localStorage.removeItem('spotify_token_expiration');
-        return null;
+            console.error('Error al refrescar token:', await response.json());
+            // Solo limpiamos localStorage si estamos en el cliente
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('spotify_token');
+                localStorage.removeItem('spotify_refresh_token');
+                localStorage.removeItem('spotify_token_expiration');
+            }
+            return null;
         }
 
         const data = await response.json();
 
-        // Guardar el nuevo token
-        localStorage.setItem('spotify_token', data.access_token);
-        // Calcular y guardar la nueva expiración (sumar data.expires_in segundos)
-        const expirationTime = Date.now() + data.expires_in * 1000; 
-        localStorage.setItem('spotify_token_expiration', expirationTime.toString());
-        
-        // Spotify a veces devuelve un nuevo refresh token, si es así, lo guardamos
-        if (data.refresh_token) {
-            localStorage.setItem('spotify_refresh_token', data.refresh_token);
+        // 💥 Solo guardamos en localStorage si estamos en el cliente 💥
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('spotify_token', data.access_token);
+            const expirationTime = Date.now() + data.expires_in * 1000; 
+            localStorage.setItem('spotify_token_expiration', expirationTime.toString());
+            
+            if (data.refresh_token) {
+                localStorage.setItem('spotify_refresh_token', data.refresh_token);
+            }
         }
 
         console.log("Token refrescado con éxito.");
-        return data.access_token;
-
+        return data.access_token; // Retornar el nuevo token
     } catch (error) {
         console.error('Error de red al intentar refrescar el token:', error);
         return null;
@@ -56,23 +66,43 @@ async function refreshAccessToken() {
  * Obtiene un token válido, refrescándolo si es necesario.
  * @returns {Promise<string|null>} Un token de acceso válido o null.
  */
-async function getValidToken() {
-    const token = localStorage.getItem('spotify_token');
-    const expiration = localStorage.getItem('spotify_token_expiration');
+export async function getValidToken(clientAccessToken, clientRefreshToken) {
+  
+  // 1. Usar tokens pasados si estamos en el servidor (API Route)
+  let token;
+  let refreshToken;
+  let expiration;
+  
+  if (clientAccessToken && clientRefreshToken) {
+      // Estamos en el servidor (API Route). Usamos los tokens pasados.
+      token = clientAccessToken;
+      refreshToken = clientRefreshToken;
+      // Nota: Aquí no podemos verificar 'expiration' fácilmente sin el cliente, 
+      // así que nos enfocamos en que el refresh token funcione.
+  } else if (typeof window !== 'undefined') {
+      // 2. Usar localStorage si estamos en el cliente (Browser)
+      token = localStorage.getItem('spotify_token');
+      refreshToken = localStorage.getItem('spotify_refresh_token');
+      expiration = localStorage.getItem('spotify_token_expiration');
 
-    // Si no hay token o no hay expiración, no estamos autenticados.
-    if (!token || !expiration) {
-        return null;
-    }
-
-    // Verificar si el token ha expirado (usando un buffer de 5 segundos)
-    if (Date.now() >= parseInt(expiration) - 5000) {
-        console.log("Token expirado o a punto de expirar. Refrescando...");
-        return await refreshAccessToken();
-    }
-
-    // El token es válido
-    return token;
+      // Verificar expiración solo si estamos en el cliente
+      if (token && expiration && Date.now() >= parseInt(expiration) - 5000) {
+          console.log("Token expirado en cliente. Refrescando...");
+          return await refreshAccessToken();
+      }
+  } else {
+      // No hay tokens en ninguno de los dos entornos.
+      return null;
+  }
+  
+  // En el servidor, si el token pasado está a punto de fallar, el refresh lo manejará.
+  if (token && refreshToken && typeof window === 'undefined') {
+      // Forzamos el refresh para el servidor, ya que no podemos verificar la expiración segura
+      // Simplemente devolveremos el token actual y dejaremos que Spotify lo rechace si está expirado.
+      return token;
+  }
+  
+  return token;
 }
 
 
@@ -144,4 +174,83 @@ export async function spotifyRequest(endpoint, options = {}) {
  */
 export async function getMyProfile() {
     return spotifyRequest('/me');
+}
+
+/**
+ * Busca artistas o canciones en Spotify.
+ * @param {string} query - Término de búsqueda.
+ * @param {string} type - Tipo de búsqueda ('artist' o 'track').
+ * @returns {Promise<object|null>} Resultados de la búsqueda.
+ */
+export async function searchSpotify(query, type = 'artist') {
+    if (!query) return null;
+    // Codificamos la URI para manejar espacios y caracteres especiales
+    const encodedQuery = encodeURIComponent(query);
+    const endpoint = `/search?q=${encodedQuery}&type=${type}&limit=10`;
+    
+    // spotifyRequest gestiona el token y el refresh automático
+    return spotifyRequest(endpoint);
+}
+
+// src/lib/spotify.js (Añadir al final)
+
+/**
+ * Obtiene los top tracks de un artista específico (necesario para las seeds).
+ * @param {string} artistId - ID del artista de Spotify.
+ * @returns {Promise<Array>|null} Array de objetos de track.
+ */
+export async function getArtistTopTracks(artistId) {
+    // El país 'ES' (España) se usa para obtener tracks accesibles
+    const endpoint = `/artists/${artistId}/top-tracks?market=ES`;
+    const response = await spotifyRequest(endpoint);
+    
+    if (response && response.tracks) {
+        return response.tracks;
+    }
+    return [];
+}
+
+/**
+ * Obtiene las características de audio (mood, energy, danceability) para un conjunto de tracks.
+ * @param {Array<string>} trackIds - Array de hasta 100 IDs de canciones.
+ * @returns {Promise<Array>|null} Array de objetos de audio features.
+ */
+export async function getAudioFeatures(trackIds) {
+    if (trackIds.length === 0) return [];
+
+    const ids = trackIds.slice(0, 100).join(','); // La API solo acepta hasta 100 IDs
+    const endpoint = `/audio-features?ids=${ids}`;
+    const response = await spotifyRequest(endpoint);
+    
+    if (response && response.audio_features) {
+        return response.audio_features;
+    }
+    return [];
+}
+
+/**
+ * Función auxiliar para obtener el ID de usuario desde el perfil.
+ * @returns {string|null} ID del usuario o null.
+ */
+export async function getUserId() {
+    const profile = await getMyProfile();
+    return profile ? profile.id : null;
+}
+
+// src/lib/spotify.js (Añadir al final)
+
+export async function getProfileByToken(accessToken) {
+    const baseUrl = 'https://api.spotify.com/v1/search?type=track&q=bohemian%20rhapsody&limit=10`;//8'; // Base URL de la API
+
+    const response = await fetch(`${baseUrl}/me`, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+        },
+    });
+    
+    if (response.ok) {
+        return response.json();
+    }
+    return null;
 }

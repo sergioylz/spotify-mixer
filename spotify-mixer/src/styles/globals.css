@@ -1,0 +1,45 @@
+/* src/styles/globals.css */
+
+/* --- 1. DIRECTIVAS DE TAILWIND (¡DEBEN IR PRIMERO!) --- */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 2. Definición del Gradiente Personalizado (CSS Puro) */
+/* Lo necesitamos aquí porque no podemos usar gradientes complejos en la clase de Body */
+.spotify-gradient-bg {
+  /* Color de inicio: un verde muy oscuro (casi negro) */
+  background-color: #121212; 
+  /* Aplicamos un gradiente lineal sutil en la parte superior */
+  background-image: linear-gradient(
+    to bottom,
+    rgba(29, 185, 84, 0.08), /* Verde Spotify muy transparente */
+    rgba(18, 18, 18, 1)      /* Se desvanece a negro sólido */
+  );
+  background-attachment: fixed;
+}
+
+/* 3. Scrollbar Estilizado (Opción Dark Mode - Webkit) */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #444; 
+  border-radius: 6px;
+  border: 3px solid #121212; 
+}
+::-webkit-scrollbar-track {
+  background: #121212; 
+}
+
+/* 4. Estilos de Reseteo y Base */
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
