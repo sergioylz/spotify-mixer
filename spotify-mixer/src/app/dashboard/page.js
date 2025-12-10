@@ -274,40 +274,41 @@ export default function Dashboard() {
         {/* Título y Botón de Generación */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl md:text-4xl font-extrabold text-white">
-            Tu Mezclador de Sabor 
+            Aleatoriza tu música basandote en tus gustos
             {user && <span className="text-xl text-green-400 block lg:inline ml-2">({user.display_name})</span>}
           </h1>
-          
-            {/* Botón de Guardar en Spotify */}
-            <button
-            onClick={handleSavePlaylist}
-            className="py-3 px-6 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 disabled:opacity-50 flex items-center justify-center space-x-2"
-            disabled={isSaving || isGenerating || playlist.length === 0}
-            >
-            {isSaving ? (
-                <>
-                <Loader size={20} className="animate-spin" />
-                <span>Guardando...</span>
-                </>
-            ) : (
-                <span>Guardar en Spotify ✨</span>
-            )}
-            </button>
+            <div className="flex space-x-4">
+              {/* Botón de Guardar en Spotify */}
+              <button
+              onClick={handleSavePlaylist}
+              className="py-3 px-6 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 disabled:opacity-50 flex items-center justify-center space-x-2"
+              disabled={isSaving || isGenerating || playlist.length === 0}
+              >
+              {isSaving ? (
+                  <>
+                  <Loader size={20} className="animate-spin" />
+                  <span>Guardando...</span>
+                  </>
+              ) : (
+                  <span>Guardar en Spotify ✨</span>
+              )}
+              </button>
 
-          <button
-            onClick={() => handleGeneratePlaylist()}
-            className="py-3 px-6 bg-[#1DB954] hover:bg-[#1ed760] text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 disabled:opacity-50 flex items-center justify-center space-x-2"
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <>
-                <Loader size={20} className="animate-spin" />
-                <span>Generando...</span>
-              </>
-            ) : (
-              <span>Generar Playlist 🚀</span>
-            )}
-          </button>
+              <button
+                onClick={() => handleGeneratePlaylist()}
+                className="py-3 px-6 bg-[#1DB954] hover:bg-[#1ed760] text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 disabled:opacity-50 flex items-center justify-center space-x-2"
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader size={20} className="animate-spin" />
+                    <span>Generando...</span>
+                  </>
+                ) : (
+                  <span>Generar Playlist 🚀</span>
+                )}
+              </button>
+            </div>
         </div>
 
         {/* LAYOUT PRINCIPAL: Grid de Widgets + Playlist */}
