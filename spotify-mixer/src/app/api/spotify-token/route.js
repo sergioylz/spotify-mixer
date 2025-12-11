@@ -33,8 +33,7 @@ export async function POST(request) {
 
     try {
         // 4. Realizar la petición POST a Spotify para obtener los tokens
-        // 💥 CORRECCIÓN DE LA URL 💥
-        const response = await fetch('https://api.spotify.com/v1', {
+        const response = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: {
             'Authorization': `Basic ${authHeader}`,
