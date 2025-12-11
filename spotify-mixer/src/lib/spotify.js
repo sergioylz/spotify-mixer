@@ -1,5 +1,18 @@
 // src/lib/spotify.js
-// 'use client' es necesario porque usa localStorage y fetch en el cliente (aunque la API Route es servidor)
+
+/**
+ * Nota: Este archivo contiene lógica que se ejecuta tanto en el cliente 
+ * (para las peticiones iniciales y el manejo de tokens en localStorage) 
+ * como potencialmente en el servidor (si es importado por una API Route que 
+ * simula peticiones de cliente).
+ */
+
+// 💥 CORRECCIÓN: Definimos la constante de la URL BASE al inicio 💥
+const SPOTIFY_API_BASE_URL = 'https://api.spotify.com/v1'; 
+
+// --------------------------------------------------------------------------
+// LÓGICA DE AUTENTICACIÓN (CLIENTE)
+// --------------------------------------------------------------------------
 
 /**
  * Función central para refrescar el token de acceso.
@@ -115,7 +128,8 @@ export async function getValidToken(clientAccessToken, clientRefreshToken) {
  */
 export async function spotifyRequest(endpoint, options = {}) {
     let token = await getValidToken();
-    const baseUrl = 'https://api.spotify.com/v1'; 
+    // 💥 CORRECCIÓN: Usamos la constante global en lugar de la variable local
+    
 
     // Si no hay token válido, abortar.
     if (!token) {
@@ -124,7 +138,7 @@ export async function spotifyRequest(endpoint, options = {}) {
     }
 
     // 1. Petición inicial
-    let response = await fetch(`${baseUrl}${endpoint}`, {
+    let response = await fetch(`${SPOTIFY_API_BASE_URL}${endpoint}`, {
         ...options,
         headers: {
         'Authorization': `Bearer ${token}`,
@@ -146,12 +160,11 @@ export async function spotifyRequest(endpoint, options = {}) {
         }
 
         // Reintentar la petición con el nuevo token
-        response = await fetch(`${baseUrl}${endpoint}`, {
+        response = await fetch(`${SPOTIFY_API_BASE_URL}${endpoint}`, {
         ...options,
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
-            ...options.headers,
         },
         });
     }
@@ -240,7 +253,7 @@ export async function getUserId() {
 // src/lib/spotify.js (Añadir al final)
 
 export async function getProfileByToken(accessToken) {
-    const baseUrl = 'https://api.spotify.com/v1/search?type=track&q=bohemian%20rhapsody&limit=10`;//8'; // Base URL de la API
+    const baseUrl = 'https://api.spotify.com/v1'; // Base URL de la API
 
     const response = await fetch(`${baseUrl}/me`, {
         headers: {

@@ -1,4 +1,3 @@
-// src/app/api/refresh-token/route.js
 import { NextResponse } from 'next/server';
 
 /**
@@ -15,6 +14,7 @@ export async function POST(request) {
     }
 
     // 2. Cargar variables de entorno
+    // Usamos SPOTIFY_CLIENT_ID y SPOTIFY_CLIENT_SECRET, que deben estar definidas en .env
     const client_id = process.env.SPOTIFY_CLIENT_ID;
     const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 
@@ -32,7 +32,8 @@ export async function POST(request) {
 
     try {
         // 4. Realizar la petición POST a Spotify para refrescar el token
-        const response = await fetch('http://googleusercontent.com/spotify.com/7', {
+        // 💥 CORRECCIÓN DE LA URL 💥
+        const response = await fetch('https://api.spotify.com/v1', {
         method: 'POST',
         headers: {
             'Authorization': `Basic ${authHeader}`,

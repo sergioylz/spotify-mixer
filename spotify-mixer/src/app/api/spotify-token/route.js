@@ -1,4 +1,3 @@
-// src/app/api/spotify-token/route.js
 import { NextResponse } from 'next/server';
 
 /**
@@ -34,7 +33,8 @@ export async function POST(request) {
 
     try {
         // 4. Realizar la petición POST a Spotify para obtener los tokens
-        const response = await fetch('https://accounts.spotify.com/api/token', {
+        // 💥 CORRECCIÓN DE LA URL 💥
+        const response = await fetch('https://api.spotify.com/v1', {
         method: 'POST',
         headers: {
             'Authorization': `Basic ${authHeader}`,
@@ -53,7 +53,6 @@ export async function POST(request) {
         const data = await response.json();
         
         // 6. Respuesta exitosa con los tokens
-        // Retornamos los tokens al cliente para que los guarde en localStorage
         return NextResponse.json(data);
 
     } catch (error) {

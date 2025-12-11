@@ -1,31 +1,10 @@
 // src/components/PlaylistDisplay.jsx
 'use client';
 
-import { useState, useEffect } from 'react';
 import TrackCard from './TrackCard';
-import { RefreshCw, PlusCircle, Save } from 'lucide-react';
+import { RefreshCw, PlusCircle } from 'lucide-react';
 
-export default function PlaylistDisplay({ playlist, setPlaylist, onRefreshPlaylist, onAddMoreTracks, onSavePlaylist }) {
-  const [favorites, setFavorites] = useState([]);
-
-  useEffect(() => {
-    const savedFavorites = JSON.parse(localStorage.getItem('favorite_tracks') || '[]');
-    setFavorites(savedFavorites);
-  }, []);
-
-  const handleToggleFavorite = (track) => {
-    let updatedFavorites;
-    const isFavorite = favorites.some(f => f.id === track.id);
-
-    if (isFavorite) {
-      updatedFavorites = favorites.filter(f => f.id !== track.id);
-    } else {
-      updatedFavorites = [...favorites, track];
-    }
-    
-    setFavorites(updatedFavorites);
-    localStorage.setItem('favorite_tracks', JSON.stringify(updatedFavorites));
-  };
+export default function PlaylistDisplay({ playlist, setPlaylist, onRefreshPlaylist, onAddMoreTracks, favoriteTracks = [], onToggleFavorite }) {
 
   const handleRemoveTrack = (trackId) => {
     const newPlaylist = playlist.filter(track => track.id !== trackId);
@@ -79,8 +58,8 @@ export default function PlaylistDisplay({ playlist, setPlaylist, onRefreshPlayli
               key={track.id}
               track={track}
               onRemove={handleRemoveTrack}
-              onToggleFavorite={handleToggleFavorite}
-              isFavorite={favorites.some(f => f.id === track.id)}
+              onToggleFavorite={onToggleFavorite}
+              isFavorite={favoriteTracks.some(f => f.id === track.id)}
             />
           ))
         )}

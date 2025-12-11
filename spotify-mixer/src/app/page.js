@@ -2,6 +2,7 @@
 'use client';
 
 import { getSpotifyAuthUrl } from '@/lib/auth'; // Usamos el alias de importación
+import Background from '@/components/background/Background';
 
 export default function Home() {
     const handleLogin = () => {
@@ -11,6 +12,8 @@ export default function Home() {
 
     return (
         <div class="flex flex-col items-center justify-center min-h-screen p-4">
+            <Background />
+
             <div class="max-w-sm w-full mx-auto">
                 
                 <div class="p-6 md:p-8 bg-gray-800 rounded-2xl shadow-2xl border border-gray-700/50 transform hover:shadow-cyan-500/30 transition duration-500 ease-in-out">

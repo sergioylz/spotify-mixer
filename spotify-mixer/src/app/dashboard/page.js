@@ -1,4 +1,3 @@
-// src/app/dashboard/page.js
 'use client';
 
 import Header from '@/components/Header';
@@ -13,6 +12,9 @@ import GenreWidget from '@/components/widgets/GenreWidget';
 import TrackWidget from '@/components/widgets/TrackWidget'; 
 import MoodWidget from '@/components/widgets/MoodWidget';
 import PlaylistDisplay from '@/components/PlaylistDisplay'; 
+import FavoriteHeader from '@/components/FavoriteHeader';
+
+import Background from '@/components/background/Background';
 
 
 export default function Dashboard() {
@@ -21,6 +23,13 @@ export default function Dashboard() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [user, setUser] = useState(null); // Datos del usuario
   const [isSaving, setIsSaving] = useState(false);
+
+  // *** ESTADO CENTRAL DE FAVORITOS (CLAVE ÚNICA DE ALMACENAMIENTO: 'favorite_seeds') ***
+  const [favoriteSeeds, setFavoriteSeeds] = useState({
+    favoriteArtists: [],
+    favoriteTracks: [],
+    favoriteGenres: [],
+  });
   
   // *** Estado Central de Preferencias (Seeds y Filtros) ***
   const [preferences, setPreferences] = useState({
@@ -39,27 +48,90 @@ export default function Dashboard() {
   const [playlist, setPlaylist] = useState([]);
   
   // --------------------------------------------------------
-  // 1. Lógica de Autenticación al Cargar
+  // 1. Lógica de Autenticación y CARGA DE FAVORITOS (Corregida)
   // --------------------------------------------------------
   useEffect(() => {
+    // Función helper para cargar favoritos de localStorage
+    const loadFavorites = () => {
+        try {
+            // CLAVE UNIFICADA PARA LECTURA
+            const storedFavorites = localStorage.getItem('favorite_seeds'); 
+            if (storedFavorites) {
+                const parsed = JSON.parse(storedFavorites);
+                
+                // Si la clave guarda un Array (lo cual es incorrecto pero manejable) o el Objeto completo.
+                // Aquí asumimos que el objeto completo {favoriteTracks: [...]} se guarda consistentemente.
+                // Si solo guardaste el array de tracks, descomenta esta lógica:
+                /*
+                if (Array.isArray(parsed)) {
+                    setFavoriteSeeds(prev => ({ 
+                        ...prev, 
+                        favoriteTracks: parsed 
+                    }));
+                } else {
+                    setFavoriteSeeds(parsed);
+                }
+                */
+                // Dado que handleToggleFavorite guarda el objeto completo, usamos la línea simple:
+                setFavoriteSeeds(parsed);
+            }
+        } catch (e) {
+            console.error("Error al cargar favoritos de localStorage:", e);
+            // Limpiar datos dañados para que la próxima carga sea limpia
+            localStorage.removeItem('favorite_seeds');
+        }
+    };
+
     const authenticate = async () => {
-      // Intenta obtener el perfil (gestiona refresh de token)
+      // 1. INTENTO DE AUTENTICACIÓN
       const profile = await getMyProfile();
 
       if (!profile) {
-        // Si falla la autenticación/refresh, redirigir
         console.log("No se pudo autenticar al usuario. Redirigiendo.");
         router.push('/');
         return;
       }
       
-      // Éxito
+      // 2. ÉXITO: CARGAR DATOS PERSISTENTES (FAVORITOS)
+      loadFavorites(); 
+      
+      // 3. ESTABILIZAR ESTADO Y TERMINAR LOADING
       setUser(profile);
       setLoading(false);
     };
 
     authenticate();
   }, [router]);
+
+  // --------------------------------------------------------
+  // Función de Toggle Favoritos (Guarda en 'favorite_seeds')
+  // --------------------------------------------------------
+  const handleToggleFavorite = (type, item) => {
+        setFavoriteSeeds(prev => {
+            const key = `favorite${type.charAt(0).toUpperCase() + type.slice(1)}s`; 
+            const currentList = prev[key] || [];
+            
+            let newList;
+            if (currentList.some(i => i.id === item.id)) {
+                // Remover si ya existe (basado en el ID)
+                newList = currentList.filter(i => i.id !== item.id);
+            } else {
+                // Añadir
+                newList = [...currentList, item];
+            }
+
+            const updatedState = { ...prev, [key]: newList };
+            
+            // Guardar la lista actualizada en localStorage (Clave Consistente)
+            try {
+                localStorage.setItem('favorite_seeds', JSON.stringify(updatedState));
+            } catch (e) {
+                console.error("Error al guardar favoritos en localStorage:", e);
+            }
+            
+            return updatedState;
+        });
+    };
 
   const handleSavePlaylist = async () => {
         if (playlist.length === 0) {
@@ -254,6 +326,31 @@ export default function Dashboard() {
   // --------------------------------------------------------
   // 5. Renderizado
   // --------------------------------------------------------
+  const [activeTab, setActiveTab] = useState('artists'); // <--- NUEVO ESTADO PARA PESTAÑAS
+
+  // Mapa de widgets para renderizado más limpio
+  const widgetMap = {
+    artists: { title: 'Artistas', component: <ArtistWidget selectedItems={preferences.artists} onSelect={(items) => updatePreferences('artists', items)} /> },
+    genres: { title: 'Géneros', component: <GenreWidget selectedItems={preferences.genres} onSelect={(items) => updatePreferences('genres', items)} /> },
+    tracks: { title: 'Canciones', component: <TrackWidget selectedItems={preferences.tracks} onSelect={(items) => updatePreferences('tracks', items)} /> },
+    mood: { 
+      title: 'Mood', 
+      component: (
+        <MoodWidget 
+          preferences={preferences.mood} 
+          onUpdate={(keyOrObject, value) => {
+            if (keyOrObject === 'reset' && typeof value === 'object') {
+              setPreferences(prev => ({ ...prev, mood: value }));
+            } else {
+              setPreferences(prev => ({ ...prev, mood: { ...prev.mood, [keyOrObject]: value } }));
+            }
+          }} 
+        />
+      )
+    },
+  };
+  
+  // Lógica de Loading y Renderizado
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-[#121212]">
@@ -268,11 +365,17 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen">
       <Header user={user} />
+
+      <FavoriteHeader 
+        favoriteSeeds={favoriteSeeds} // Pasamos el objeto con todos los favoritos
+        onToggleFavorite={handleToggleFavorite} // Si quieres que puedan eliminar desde aquí
+      />
       
       <main className="p-4 md:p-8">
+        <Background />
         
         {/* Título y Botón de Generación */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-6 space-y-4 lg:space-y-0">
           <h1 className="text-3xl md:text-4xl font-extrabold text-white">
             Aleatoriza tu música basandote en tus gustos
             {user && <span className="text-xl text-green-400 block lg:inline ml-2">({user.display_name})</span>}
@@ -311,48 +414,53 @@ export default function Dashboard() {
             </div>
         </div>
 
-        {/* LAYOUT PRINCIPAL: Grid de Widgets + Playlist */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* LAYOUT PRINCIPAL: Dos Columnas Grandes (Widgets c/Tabs | Playlist) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          {/* Columna de Widgets (1/3 en desktop) */}
-          <div className="lg:col-span-1 min-w-0 space-y-6">
-            <h2 className="text-xl font-semibold text-gray-300 border-b border-gray-700 pb-2">Ajusta tus Preferencias</h2>
+          {/* Columna Izquierda: Widgets en Pestañas */}
+          <div className="p-6 bg-gray-800 rounded-xl shadow-2xl min-h-[600px] flex flex-col">
+            <h2 className="text-2xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Ajusta tus Preferencias (Seeds y Mood)</h2>
             
-            <div className="space-y-4">
-              <ArtistWidget selectedItems={preferences.artists} onSelect={(items) => updatePreferences('artists', items)} />
-              <GenreWidget selectedItems={preferences.genres} onSelect={(items) => updatePreferences('genres', items)} />
-              <TrackWidget selectedItems={preferences.tracks} onSelect={(items) => updatePreferences('tracks', items)} />
-              <MoodWidget 
-                    preferences={preferences.mood} 
-                    // FUNCIÓN DE ACTUALIZACIÓN CORREGIDA
-                    onUpdate={(keyOrObject, value) => {
-                        if (keyOrObject === 'reset' && typeof value === 'object') {
-                            // Maneja el reset: El valor es el objeto {energy: 0.5, ...}
-                            // Aplica el objeto completo, forzando la actualización de todos los sliders
-                            setPreferences(prev => ({ ...prev, mood: value }));
-                        } else {
-                            // Maneja el deslizador individual (key, value)
-                            setPreferences(prev => ({ 
-                                ...prev, 
-                                mood: { ...prev.mood, [keyOrObject]: value } 
-                            }));
-                        }
-                    }} 
-                />
+            {/* Navegación de Pestañas */}
+            <div className="flex space-x-2 border-b border-gray-700 mb-4 overflow-x-auto">
+              {Object.keys(widgetMap).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`
+                    py-2 px-4 text-sm font-semibold rounded-t-lg transition-colors duration-200 whitespace-nowrap
+                    ${activeTab === key 
+                      ? 'bg-gray-700 text-white border-b-2 border-green-400' 
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'}
+                  `}
+                >
+                  {widgetMap[key].title}
+                </button>
+              ))}
+            </div>
+
+            {/* Contenido de la Pestaña Activa */}
+            <div className="flex-grow overflow-y-auto">
+              {widgetMap[activeTab].component}
             </div>
           </div>
 
-          {/* Área Central de Playlist (2/3 en desktop) */}
-          <div className="lg:col-span-2 xl:col-span-3 min-w-0">
-            <h2 className="text-xl font-semibold text-gray-300 border-b border-gray-700 pb-2 mb-4">Playlist Generada ({playlist.length} Canciones)</h2>
+          {/* Columna Derecha: Playlist Generada */}
+          <div className="p-6 bg-gray-800 rounded-xl shadow-2xl min-h-[600px] flex flex-col">
+            <h2 className="text-2xl font-bold text-white mb-4 border-b border-gray-700 pb-2">
+              Playlist Generada ({playlist.length} Canciones)
+            </h2>
             
-            <PlaylistDisplay 
-              playlist={playlist} 
-              setPlaylist={setPlaylist} 
-              // Pasamos las funciones de gestión obligatorias
-              onRefreshPlaylist={() => handleGeneratePlaylist(false)} // false para reemplazar
-              onAddMoreTracks={() => handleGeneratePlaylist(true)} // true para añadir
-            />
+            <div className="flex-grow overflow-y-auto">
+              <PlaylistDisplay 
+                playlist={playlist} 
+                setPlaylist={setPlaylist} 
+                onRefreshPlaylist={() => handleGeneratePlaylist(false)}
+                onAddMoreTracks={() => handleGeneratePlaylist(true)}
+                favoriteTracks={favoriteSeeds.favoriteTracks} 
+                onToggleFavorite={(track) => handleToggleFavorite('track', track)}
+              />
+            </div>
           </div>
         </div>
       </main>
