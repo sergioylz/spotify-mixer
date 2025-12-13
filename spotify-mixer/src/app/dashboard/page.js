@@ -689,10 +689,10 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           {/* Columna Izquierda: Widgets en Pestañas */}
-          <div className="p-6 bg-gray-800 rounded-xl shadow-2xl min-h-[600px] flex flex-col">
+          <div className="p-6 bg-gray-800 rounded-xl shadow-2xl min-h-[600px] flex flex-col transform hover:shadow-cyan-500/30 transition duration-500 ease-in-out">
             <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">   
                 {/* ENCABEZADO (No necesita border-b) */}
-                <h2 className="text-2xl font-bold text-white">Ajusta tus Preferencias (Seeds y Mood)</h2>
+                <h2 className="text-2xl font-bold text-white">Ajusta tus Preferencias</h2>
                 
                 {/* BOTÓN (Alineado a la derecha) */}
                 <button
@@ -731,7 +731,7 @@ export default function Dashboard() {
           </div>
 
           {/* Columna Derecha: Playlist Generada */}
-          <div className="p-6 bg-gray-800 rounded-xl shadow-2xl min-h-[600px] flex flex-col">
+          <div className="p-6 bg-gray-800 rounded-xl shadow-2xl min-h-[600px] flex flex-col transform hover:shadow-cyan-500/30 transition duration-500 ease-in-out">
             <h2 className="text-2xl font-bold text-white mb-4 border-b border-gray-700 pb-2">
               Playlist Generada ({playlist.length} Canciones)
             </h2>
@@ -749,7 +749,8 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mt-8">
+        {/* Fila Inferior: Wrapped */}
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mt-8 transform hover:shadow-cyan-500/30 transition duration-500 ease-in-out">
               <div className="lg:col-span-1">
                 <WrappedWidget 
                     accessToken={accessToken}
