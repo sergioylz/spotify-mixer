@@ -4,13 +4,35 @@
 import TrackCard from './TrackCard';
 import { RefreshCw, PlusCircle, Trash2 } from 'lucide-react';
 
+/**
+ * Componente PlaylistDisplay
+ * Muestra la lista de canciones generadas y controles para gestionar la playlist
+ * 
+ * @param {Array} playlist - Array de canciones en la playlist actual
+ * @param {Function} setPlaylist - Función para actualizar el estado de la playlist
+ * @param {Function} onRefreshPlaylist - Callback para regenerar la playlist con las mismas preferencias
+ * @param {Function} onAddMoreTracks - Callback para añadir más canciones a la playlist existente
+ * @param {Function} onClearPlaylist - Callback para limpiar todas las canciones
+ * @param {Array} favoriteTracks - Array de canciones marcadas como favoritas (por defecto vacío)
+ * @param {Function} onToggleFavorite - Callback para marcar/desmarcar una canción como favorita
+ */
 export default function PlaylistDisplay({ playlist, setPlaylist, onRefreshPlaylist, onAddMoreTracks, onClearPlaylist, favoriteTracks = [], onToggleFavorite }) {
 
+  /**
+   * Elimina una canción específica de la playlist
+   * Filtra el array quitando la canción con el ID especificado
+   * 
+   * @param {string} trackId - ID de la canción a eliminar
+   */
   const handleRemoveTrack = (trackId) => {
     const newPlaylist = playlist.filter(track => track.id !== trackId);
     setPlaylist(newPlaylist);
   };
 
+  /**
+   * Limpia todas las canciones de la playlist después de confirmar
+   * Muestra un diálogo de confirmación antes de ejecutar la acción
+   */
   const handleClearAll = () => {
     if (confirm('¿Estás seguro de que quieres eliminar todas las canciones?')) {
       onClearPlaylist();
@@ -18,12 +40,13 @@ export default function PlaylistDisplay({ playlist, setPlaylist, onRefreshPlayli
   };
 
   return (
+    // Contenedor principal de la playlist con fondo oscuro y bordes redondeados
     <div className="bg-[#181818] rounded-xl shadow-2xl p-6 min-h-[500px] space-y-4 border border-gray-800">
       
-      {/* Botones de Gestión (Guardar / Refrescar / Añadir) */}
+      {/* Barra de botones para gestionar la playlist (Refrescar, Añadir, Limpiar) */}
       <div className="flex justify-start space-x-3 border-b border-gray-700 pb-4 flex-wrap gap-2">
         
-        {/* Botón Refrescar Playlist */}
+        {/* Botón para regenerar la playlist completa con las mismas preferencias */}
         <button
           onClick={onRefreshPlaylist} 
           className="py-2 px-4 flex items-center space-x-2 
@@ -36,7 +59,7 @@ export default function PlaylistDisplay({ playlist, setPlaylist, onRefreshPlayli
           <span>Refrescar</span>
         </button>
         
-        {/* Botón Añadir Más Canciones */}
+        {/* Botón para añadir más canciones sin reemplazar las existentes */}
         <button
           onClick={onAddMoreTracks} 
           className="py-2 px-4 flex items-center space-x-2 
@@ -49,7 +72,7 @@ export default function PlaylistDisplay({ playlist, setPlaylist, onRefreshPlayli
           <span>Añadir Más</span>
         </button>
 
-        {/* Botón Limpiar Todas las Canciones */}
+        {/* Botón para eliminar todas las canciones (con confirmación) */}
         <button
           onClick={handleClearAll} 
           className="py-2 px-4 flex items-center space-x-2 
@@ -64,21 +87,23 @@ export default function PlaylistDisplay({ playlist, setPlaylist, onRefreshPlayli
 
       </div>
 
-      {/* Lista de Canciones */}
+      {/* Área principal que muestra la lista de canciones con scroll */}
       <div className="space-y-3 h-[400px] lg:h-[calc(100vh-350px)] overflow-y-auto pr-2 custom-scrollbar">
         {playlist.length === 0 ? (
+          // Estado vacío: muestra instrucciones cuando no hay canciones
           <div className="text-center py-20 text-gray-500 bg-[#121212] rounded-lg border border-dashed border-gray-700">
             <p className="text-lg font-semibold">Usa los widgets de la izquierda para generar música.</p>
             <p className="text-sm mt-2">Selecciona artistas, géneros o moods y haz clic en 'Generar Playlist'.</p>
           </div>
         ) : (
+          // Renderiza cada canción como una TrackCard
           playlist.map((track) => (
             <TrackCard
               key={track.id}
               track={track}
               onRemove={handleRemoveTrack}
               onToggleFavorite={onToggleFavorite}
-              isFavorite={favoriteTracks.some(f => f.id === track.id)}
+              isFavorite={favoriteTracks.some(f => f.id === track.id)} // Verifica si está en favoritos
             />
           ))
         )}
