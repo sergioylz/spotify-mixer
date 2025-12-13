@@ -118,7 +118,7 @@ export default function TrackWidget({ selectedItems, onSelect }) {
     // Contenedor principal del widget
     <div className="bg-[#181818] rounded-xl shadow-xl p-4 space-y-4">
       {/* Título del widget */}
-      <h3 className="text-lg font-semibold text-white">🎧 Canciones de Semilla (Seed)</h3>
+      <h3 className="text-lg font-semibold text-white">🎧 Canciones</h3>
       
       {/* Indicador de cantidad seleccionada vs límite máximo */}
       <div className="text-sm text-gray-400">
@@ -175,7 +175,7 @@ export default function TrackWidget({ selectedItems, onSelect }) {
                 className="w-8 h-8 rounded mr-3" 
               />
               {/* Información de la canción */}
-              <div className="min-w-0 flex-grow">
+              <div className="min-w-0 grow">
                 {/* Nombre de la canción (truncado si es muy largo) */}
                 <p className="font-semibold truncate">{track.name}</p>
                 {/* Nombres de los artistas (truncado si es muy largo) */}
