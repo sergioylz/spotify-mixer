@@ -7,6 +7,7 @@ import { getMyProfile, getArtistTopTracks, getAudioFeatures, searchSpotify } fro
 import { Loader } from 'lucide-react';
 
 // Importación de Widgets y Display
+import WrappedWidget from '@/components/widgets/WrappedWidget';
 import ArtistWidget from '@/components/widgets/ArtistWidget';
 import GenreWidget from '@/components/widgets/GenreWidget';
 import TrackWidget from '@/components/widgets/TrackWidget'; 
@@ -19,6 +20,7 @@ import Background from '@/components/background/Background';
 
 export default function Dashboard() {
   const router = useRouter();
+  const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [user, setUser] = useState(null); // Datos del usuario
@@ -46,6 +48,7 @@ export default function Dashboard() {
 
   // Estado para la playlist generada
   const [playlist, setPlaylist] = useState([]);
+  const [playlistName, setPlaylistName] = useState('');
   
   // --------------------------------------------------------
   // 1. Lógica de Autenticación y CARGA DE FAVORITOS (Corregida)
@@ -92,8 +95,14 @@ export default function Dashboard() {
         return;
       }
       
-      // 2. ÉXITO: CARGAR DATOS PERSISTENTES (FAVORITOS)
-      loadFavorites(); 
+      // 2. ÉXITO: CARGAR DATOS PERSISTENTES (FAVORITOS Y TOKEN)
+      loadFavorites();
+      
+      // Cargar el access token desde localStorage
+      const token = localStorage.getItem('spotify_token');
+      if (token) {
+        setAccessToken(token);
+      }
       
       // 3. ESTABILIZAR ESTADO Y TERMINAR LOADING
       setUser(profile);
@@ -160,7 +169,7 @@ export default function Dashboard() {
 
     const trackUris = playlist.map(track => `spotify:track:${track.id}`);
     const date = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-    const playlistName = `Taste Mixer (${date} - ${playlist.length} tracks)`;
+    const finalPlaylistName = playlistName.trim() || `Taste Mixer (${date} - ${playlist.length} tracks)`;
 
     try {
       // 3. Llamar a la API Route (servidor), PASANDO LOS TOKENS
@@ -169,7 +178,7 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          playlistName,
+          playlistName: finalPlaylistName,
           trackUris,
           accessToken, // <-- PASAR
           refreshToken, // <-- PASAR
@@ -182,9 +191,11 @@ export default function Dashboard() {
             throw new Error(data.error || 'Error desconocido al guardar.');
         }
 
-        alert(`¡Playlist "${playlistName}" guardada en Spotify!`);
+        alert(`¡Playlist "${finalPlaylistName}" guardada en Spotify!`);
         // Opcional: Abrir la playlist en una nueva pestaña
         window.open(data.playlistUrl, '_blank');
+        // Limpiar el nombre después de guardar
+        setPlaylistName('');
 
         } catch (error) {
         console.error('Error al guardar playlist:', error);
@@ -199,6 +210,32 @@ export default function Dashboard() {
   // --------------------------------------------------------
   const updatePreferences = (key, value) => {
     setPreferences(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Función para limpiar todas las selecciones
+  const handleClearSelections = () => {
+    if (confirm('¿Estás seguro de que quieres limpiar todas las selecciones?')) {
+      setPreferences({
+        artists: [],
+        genres: [],
+        tracks: [],
+        mood: {
+          energy: 0.5,
+          valence: 0.5,
+          danceability: 0.5,
+          acousticness: 0.5,
+        },
+      });
+    }
+  };
+
+  // Función para añadir canciones a la playlist
+  const handleAddTracksToPlaylist = (tracks) => {
+    setPlaylist(prev => {
+      const existingIds = new Set(prev.map(t => t.id));
+      const newTracks = tracks.filter(t => !existingIds.has(t.id));
+      return [...prev, ...newTracks];
+    });
   };
 
   // --------------------------------------------------------
@@ -380,7 +417,15 @@ export default function Dashboard() {
             Aleatoriza tu música basandote en tus gustos
             {user && <span className="text-xl text-green-400 block lg:inline ml-2">({user.display_name})</span>}
           </h1>
-            <div className="flex space-x-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              {/* Campo para nombre de playlist */}
+              <input
+                type="text"
+                value={playlistName}
+                onChange={(e) => setPlaylistName(e.target.value)}
+                placeholder="Nombre de playlist (opcional)"
+                className="py-2 px-4 bg-gray-700 text-white rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 w-64"
+              />
               {/* Botón de Guardar en Spotify */}
               <button
               onClick={handleSavePlaylist}
@@ -419,8 +464,21 @@ export default function Dashboard() {
           
           {/* Columna Izquierda: Widgets en Pestañas */}
           <div className="p-6 bg-gray-800 rounded-xl shadow-2xl min-h-[600px] flex flex-col">
-            <h2 className="text-2xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Ajusta tus Preferencias (Seeds y Mood)</h2>
-            
+            <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">   
+                {/* ENCABEZADO (No necesita border-b) */}
+                <h2 className="text-2xl font-bold text-white">Ajusta tus Preferencias (Seeds y Mood)</h2>
+                
+                {/* BOTÓN (Alineado a la derecha) */}
+                <button
+                    onClick={handleClearSelections}
+                    // Clases ajustadas para ser más compacto y usar el color de "peligro"
+                    className="py-2 px-4 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-full transition-all duration-300 transform hover:scale-105 flex items-center space-x-1"
+                    title="Limpiar todas las selecciones"
+                >
+                    <span>Limpiar</span>
+                    <span className="text-lg">🧹</span>
+                </button>
+            </div>
             {/* Navegación de Pestañas */}
             <div className="flex space-x-2 border-b border-gray-700 mb-4 overflow-x-auto">
               {Object.keys(widgetMap).map((key) => (
@@ -437,6 +495,7 @@ export default function Dashboard() {
                   {widgetMap[key].title}
                 </button>
               ))}
+              
             </div>
 
             {/* Contenido de la Pestaña Activa */}
@@ -457,12 +516,21 @@ export default function Dashboard() {
                 setPlaylist={setPlaylist} 
                 onRefreshPlaylist={() => handleGeneratePlaylist(false)}
                 onAddMoreTracks={() => handleGeneratePlaylist(true)}
+                onClearPlaylist={() => setPlaylist([])}
                 favoriteTracks={favoriteSeeds.favoriteTracks} 
                 onToggleFavorite={(track) => handleToggleFavorite('track', track)}
               />
             </div>
           </div>
         </div>
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mt-8">
+              <div className="lg:col-span-1">
+                <WrappedWidget 
+                    accessToken={accessToken}
+                    onAddToPlaylist={handleAddTracksToPlaylist}
+                />
+              </div>
+          </div>
       </main>
     </div>
   );

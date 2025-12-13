@@ -2,20 +2,26 @@
 'use client';
 
 import TrackCard from './TrackCard';
-import { RefreshCw, PlusCircle } from 'lucide-react';
+import { RefreshCw, PlusCircle, Trash2 } from 'lucide-react';
 
-export default function PlaylistDisplay({ playlist, setPlaylist, onRefreshPlaylist, onAddMoreTracks, favoriteTracks = [], onToggleFavorite }) {
+export default function PlaylistDisplay({ playlist, setPlaylist, onRefreshPlaylist, onAddMoreTracks, onClearPlaylist, favoriteTracks = [], onToggleFavorite }) {
 
   const handleRemoveTrack = (trackId) => {
     const newPlaylist = playlist.filter(track => track.id !== trackId);
     setPlaylist(newPlaylist);
   };
 
+  const handleClearAll = () => {
+    if (confirm('¿Estás seguro de que quieres eliminar todas las canciones?')) {
+      onClearPlaylist();
+    }
+  };
+
   return (
     <div className="bg-[#181818] rounded-xl shadow-2xl p-6 min-h-[500px] space-y-4 border border-gray-800">
       
       {/* Botones de Gestión (Guardar / Refrescar / Añadir) */}
-      <div className="flex justify-start space-x-3 border-b border-gray-700 pb-4">
+      <div className="flex justify-start space-x-3 border-b border-gray-700 pb-4 flex-wrap gap-2">
         
         {/* Botón Refrescar Playlist */}
         <button
@@ -41,6 +47,19 @@ export default function PlaylistDisplay({ playlist, setPlaylist, onRefreshPlayli
         >
           <PlusCircle size={16} />
           <span>Añadir Más</span>
+        </button>
+
+        {/* Botón Limpiar Todas las Canciones */}
+        <button
+          onClick={handleClearAll} 
+          className="py-2 px-4 flex items-center space-x-2 
+                    bg-red-600 hover:bg-red-700 text-white rounded-full 
+                    text-sm font-semibold transition-colors disabled:opacity-50"
+          title="Eliminar todas las canciones de la playlist"
+          disabled={playlist.length === 0}
+        >
+          <Trash2 size={16} />
+          <span>Limpiar Todo</span>
         </button>
 
       </div>

@@ -267,3 +267,38 @@ export async function getProfileByToken(accessToken) {
     }
     return null;
 }
+
+/**
+ * Obtiene los elemento principales (Top Artists o Top Tracks) del usuario.
+ * @param {string} validToken - Token de acceso válido.
+ * @param {'artists'|'tracks'} type - Tipo de elementos a obtener.
+ * @param {'long_term'|'medium_term'|'short_term'} timeRange - Rango de tiempo para los top items.
+ * @returns {Promise<Object|null>} Objeto con los elementos principales o null.
+ */
+
+export async function getTopItems(validToken, type, timeRange = 'medium_term', limit = 5) {
+    if(!validToken) return null;
+
+    const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
+
+    try { 
+        const url = `${SPOTIFY_API_BASE}/me/top/${type}?time_range=${timeRange}&limit=${limit}`;
+
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${validToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            console.error(`Error al obtener top ${type}:`, await response.json());
+            return null;
+        }
+
+        const data = await response.json();
+        return data;
+    }catch (error) {
+        console.error('Error de red al obtener top items:', error);
+        return null;
+    }
+}
